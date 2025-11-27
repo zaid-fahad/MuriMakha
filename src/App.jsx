@@ -92,22 +92,53 @@ const MuriMakhaPop = () => {
 
   const calculate = (item) => {
     const totalRaw = item.baseQty * people;
-    
-    if (item.packSize) {
-      const packs = (totalRaw / item.packSize).toFixed(1);
-      // If packs is close to integer, show integer
-      const prettyPacks = packs.endsWith('.0') ? parseInt(packs) : packs;
-      const displayGrams = totalRaw >= 1000 ? `${(totalRaw/1000).toFixed(1)}kg` : `${Math.ceil(totalRaw)}g`;
-      return `${displayGrams} (${prettyPacks} ${item.packUnit})`;
+    const unit = item.unit;
+
+    // Handle items measured by weight (g/kg)
+    if (unit === 'g') {
+      let displayWeight;
+      
+      if (totalRaw >= 1000) {
+        // Convert to Kilograms (kg)
+        displayWeight = `${(totalRaw / 1000).toFixed(2)} kg`; 
+      } else {
+        // Display in Grams (g), rounded to the nearest 10g
+        displayWeight = `${Math.round(totalRaw / 10) * 10} g`; 
+      }
+
+      if (item.packSize) {
+        // Show both weight and packets for Muri/Chanachur
+        const packs = totalRaw / item.packSize;
+        const prettyPacks = packs > 1 ? Math.ceil(packs) : packs.toFixed(1);
+        return `${displayWeight} (~${prettyPacks} ${item.packUnit})`;
+      }
+      
+      return displayWeight; // For Chicken/Chola (just weight)
+    } 
+
+    // Handle small liquid/spice units (tbsp, tsp)
+    if (unit === 'tbsp' || unit === 'tsp') {
+      // Show 1 decimal place, remove trailing .0 if it's a whole number
+      const value = totalRaw.toFixed(1).replace(/\.0$/, ''); 
+      return `${value} ${unit}`;
+    }
+
+    // Handle discrete/countable items (pcs, med, lg, bunch, pkt)
+    if (unit === 'pcs' || unit === 'med' || unit === 'lg' || unit === 'bunch' || unit === 'pkt') {
+        if (totalRaw <= 1) {
+             // If calculated amount is small, show one decimal place
+             return `${totalRaw.toFixed(1)} ${unit}`;
+        }
+        // For shopping/cooking, round up to the next whole item
+        return `${Math.ceil(totalRaw)} ${unit}`; 
     }
     
-    if (totalRaw < 1) return totalRaw.toFixed(1);
-    return Math.ceil(totalRaw);
+    // Fallback
+    return `${totalRaw.toFixed(1)} ${unit}`;
   };
 
   // --- RENDER HELPERS ---
   const activeIngredients = ingredientsDB.filter(i => customizations[i.id]);
-  const totalPrice = people * 40; // Fake price algo for fun UI
 
   return (
     <div className="min-h-screen font-sans bg-[#FDF6E3] text-[#2c2c2c] selection:bg-[#F59E0B] selection:text-white pb-12">
